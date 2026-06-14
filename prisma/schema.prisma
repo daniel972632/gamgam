@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TripRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+enum PlaceCategory {
+  FOOD
+  CULTURE
+  STAY
+  TRANSPORT
+  ETC
+}
+
+model User {
+  id        String       @id @default(uuid())
+  email     String       @unique
+  name      String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  trips     TripMember[]
+  comments  Comment[]
+}
+
+model Trip {
+  id          String         @id @default(uuid())
+  title       String
+  destination String
+  startsAt    DateTime
+  endsAt      DateTime
+  shareSlug   String         @unique
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  days        ItineraryDay[]
+  members     TripMember[]
+}
+
+model TripMember {
+  id        String   @id @default(uuid())
+  tripId    String
+  userId    String
+  role      TripRole @default(EDITOR)
+  createdAt DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+}
+
+model ItineraryDay {
+  id        String      @id @default(uuid())
+  tripId    String
+  date      DateTime
+  label     String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  trip      Trip        @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  cards     PlaceCard[]
+}
+
+model PlaceCard {
+  id          String        @id @default(uuid())
+  dayId       String
+  title       String
+  area        String?
+  address     String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  position    Int
+  category    PlaceCategory @default(ETC)
+  externalId  String?
+  lat         Float?
+  lng         Float?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  day         ItineraryDay  @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  comments    Comment[]
+}
+
+model Comment {
+  id        String    @id @default(uuid())
+  cardId    String
+  userId    String
+  body      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  card      PlaceCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
